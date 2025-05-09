@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canvas of Chaos</title>
+    <style>
+        @keyframes gradientBG {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        @keyframes ripple {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(-45deg, #050810, #0a1020, #102030, #0a1020);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #e0e0ff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+        }
+
+        .title {
+            font-size: 32px;
+            font-weight: 300;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            margin: 0;
+            animation: pulse 4s infinite alternate;
+            text-shadow: 0 0 15px rgba(100, 200, 255, 0.6);
+            position: relative;
+        }
+
+        .title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, rgba(0,150,255,0), rgba(0,150,255,0.8), rgba(0,150,255,0));
+            animation: line-expand 3s ease-in-out infinite;
+        }
+
+        @keyframes line-expand {
+            0% { width: 0; }
+            50% { width: 100%; }
+            100% { width: 0; }
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 0.8;
+                letter-spacing: 4px;
+            }
+            50% {
+                text-shadow: 0 0 25px rgba(100, 200, 255, 0.9);
+            }
+            100% {
+                opacity: 1;
+                letter-spacing: 6px;
+                text-shadow: 0 0 30px rgba(100, 200, 255, 1);
+            }
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 640px;
+            height: 416px;
+            box-shadow: 0 0 40px rgba(0, 150, 255, 0.4);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.8s cubic-bezier(0.165, 0.84, 0.44, 1);
+            transform: perspective(1000px) rotateX(0deg);
+        }
+
+        .canvas-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: -1;
+            border-radius: 8px;
+            background: linear-gradient(45deg, rgba(0,50,100,0.5), rgba(0,150,255,0.5));
+            box-shadow: 0 0 60px rgba(0, 200, 255, 0.6);
+            opacity: 0;
+            transition: opacity 0.8s ease;
+        }
+
+        .canvas-container:hover {
+            box-shadow: 0 0 60px rgba(0, 200, 255, 0.6);
+            transform: perspective(1000px) rotateX(2deg);
+        }
+        
+        .canvas-container:hover::before {
+            opacity: 0.3;
+        }
+
+        #pixelCanvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background-color: rgba(20, 30, 50, 0.7);
+            padding: 15px 25px;
+            border-radius: 50px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 0 20px rgba(0, 150, 255, 0.2);
+            transition: all 0.5s cubic-bezier(0.165, 0.84, 0.44, 1);
+            position: relative;
+            overflow: hidden;
+            animation: float 6s ease-in-out infinite;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .controls::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                45deg,
+                transparent,
+                rgba(0, 150, 255, 0.1),
+                transparent
+            );
+            transform: rotate(45deg);
+            transition: transform 0.8s ease;
+        }
+
+        .controls:hover {
+            background-color: rgba(25, 35, 60, 0.8);
+            box-shadow: 0 0 30px rgba(0, 180, 255, 0.5);
+            transform: scale(1.03);
+        }
+        
+        .controls:hover::before {
+            transform: rotate(45deg) translateX(100%);
+            transition: transform 1.2s ease;
+        }
+
+        label {
+            font-size: 16px;
+            font-weight: 300;
+            letter-spacing: 1px;
+        }
+
+        input[type="number"] {
+            background-color: rgba(10, 20, 40, 0.8);
+            border: 1px solid rgba(100, 200, 255, 0.4);
+            border-radius: 20px;
+            color: #e0e0ff;
+            padding: 10px 15px;
+            font-size: 16px;
+            width: 80px;
+            transition: all 0.3s ease;
+            outline: none;
+            text-align: center;
+        }
+
+        input[type="number"]:focus {
+            border-color: rgba(100, 200, 255, 0.8);
+            box-shadow: 0 0 15px rgba(100, 200, 255, 0.4);
+        }
+
+        button.icon-btn {
+            background: linear-gradient(135deg, #2c3e50, #4a6491);
+            color: #e0e0ff;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+            box-shadow: 0 0 10px rgba(0, 150, 255, 0.3);
+            position: relative;
+            overflow: hidden;
+            padding: 0;
+            margin: 0 5px;
+        }
+
+        button.icon-btn:hover {
+            background: linear-gradient(135deg, #34495e, #5d7fb9);
+            box-shadow: 0 0 15px rgba(0, 180, 255, 0.7);
+            transform: translateY(-2px) scale(1.1);
+        }
+        
+        button.icon-btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 0 8px rgba(0, 180, 255, 0.5);
+        }
+        
+        button.icon-btn svg {
+            transition: transform 0.3s ease;
+        }
+        
+        button.icon-btn:hover svg {
+            transform: scale(1.2);
+        }
+        
+        .control-actions {
+            display: flex;
+            gap: 10px;
+            margin-left: 10px;
+        }
+        
+        button#pauseBtn.paused svg {
+            display: none;
+        }
+        
+        button#pauseBtn.paused::after {
+            content: '▶';
+            font-size: 16px;
+            line-height: 1;
+        }
+
+        button#updateBtn {
+            background: linear-gradient(135deg, #2c3e50, #4a6491);
+            color: #e0e0ff;
+            border: none;
+            border-radius: 20px;
+            padding: 10px 25px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.5s cubic-bezier(0.165, 0.84, 0.44, 1);
+            box-shadow: 0 0 10px rgba(0, 150, 255, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button#updateBtn::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transform: translateX(-100%);
+            transition: transform 0s;
+        }
+
+        button#updateBtn:hover {
+            background: linear-gradient(135deg, #34495e, #5d7fb9);
+            box-shadow: 0 0 20px rgba(0, 180, 255, 0.7);
+            transform: translateY(-3px) scale(1.05);
+        }
+        
+        button#updateBtn:hover::after {
+            transform: translateX(100%);
+            transition: transform 0.8s ease;
+        }
+        
+        button#updateBtn:active {
+            transform: translateY(1px) scale(0.98);
+            box-shadow: 0 0 15px rgba(0, 180, 255, 0.5);
+            transition: all 0.1s ease;
+        }
+        
+        .status {
+            font-size: 14px;
+            color: rgba(200, 220, 255, 0.8);
+            margin-top: 15px;
+            letter-spacing: 1px;
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.165, 0.84, 0.44, 1);
+            transform: translateY(10px);
+            background: rgba(20, 30, 50, 0.5);
+            backdrop-filter: blur(8px);
+            padding: 8px 20px;
+            border-radius: 20px;
+            border-left: 2px solid rgba(0, 150, 255, 0.5);
+        }
+        
+        .status.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">Canvas of Chaos</h1>
+        
+        <div class="canvas-container">
+            <canvas id="pixelCanvas" width="640" height="416"></canvas>
+        </div>
+        
+        <div class="controls">
+            <label for="interval">Interval (ms):</label>
+            <input type="number" id="interval" min="100" max="10000" value="3000">
+            <button id="updateBtn">Update</button>
+            
+            <div class="control-actions">
+                <button id="pauseBtn" class="icon-btn" title="Pause/Resume">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M5 3.5h2A.5.5 0 0 1 7.5 4v8a.5.5 0 0 1-.5.5H5a.5.5 0 0 1-.5-.5V4a.5.5 0 0 1 .5-.5zm4 0h2a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-.5.5H9a.5.5 0 0 1-.5-.5V4a.5.5 0 0 1 .5-.5z"/>
+                    </svg>
+                </button>
+                <button id="undoBtn" class="icon-btn" title="Go Back to Previous State">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0-.908-.417A6 6 0 1 0 8 2v1z"/>
+                        <path d="M8 4.466V.534a.25.25 0 0 0-.41-.192L5.23 2.308a.25.25 0 0 0 0 .384l2.36 1.966A.25.25 0 0 0 8 4.466z"/>
+                    </svg>
+                </button>
+                <button id="downloadBtn" class="icon-btn" title="Download Current Image">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                        <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <div id="status" class="status">Pixels changing every 3000ms</div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('pixelCanvas');
+        const ctx = canvas.getContext('2d');
+        const intervalInput = document.getElementById('interval');
+        const updateBtn = document.getElementById('updateBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const undoBtn = document.getElementById('undoBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const statusEl = document.getElementById('status');
+        
+        let pixelSize = 4;
+        let width = canvas.width;
+        let height = canvas.height;
+        let intervalId;
+        let animationId;
+        let currentInterval = 3000;
+        let pixelData = [];
+        let targetPixelData = [];
+        let previousPixelData = [];
+        let transitionProgress = 1;
+        let isPaused = false;
+        function initializePixelArrays() {
+            pixelData = [];
+            targetPixelData = [];
+            previousPixelData = [];
+            
+            for (let y = 0; y < height; y += pixelSize) {
+                for (let x = 0; x < width; x += pixelSize) {
+                    const color = {
+                        r: Math.floor(Math.random() * 256),
+                        g: Math.floor(Math.random() * 256),
+                        b: Math.floor(Math.random() * 256)
+                    };
+                    
+                    pixelData.push({
+                        x,
+                        y,
+                        color: {...color}
+                    });
+                    
+                    targetPixelData.push({
+                        x,
+                        y,
+                        color: {...color}
+                    });
+                    
+                    previousPixelData.push({
+                        x,
+                        y,
+                        color: {...color}
+                    });
+                }
+            }
+        }
+        
+        function getRandomColor() {
+            return {
+                r: Math.floor(Math.random() * 256),
+                g: Math.floor(Math.random() * 256),
+                b: Math.floor(Math.random() * 256)
+            };
+        }
+        
+        function generateNewTargetColors() {
+            for (let i = 0; i < pixelData.length; i++) {
+                previousPixelData[i].color = {...pixelData[i].color};
+            }
+            
+            for (let i = 0; i < targetPixelData.length; i++) {
+                targetPixelData[i].color = getRandomColor();
+            }
+            transitionProgress = 0;
+        }
+        
+        function drawPixels() {
+            ctx.clearRect(0, 0, width, height);
+            
+            for (let i = 0; i < pixelData.length; i++) {
+                const pixel = pixelData[i];
+                const targetPixel = targetPixelData[i];
+                const r = Math.round(pixel.color.r + (targetPixel.color.r - pixel.color.r) * transitionProgress);
+                const g = Math.round(pixel.color.g + (targetPixel.color.g - pixel.color.g) * transitionProgress);
+                const b = Math.round(pixel.color.b + (targetPixel.color.b - pixel.color.b) * transitionProgress);
+                
+                ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                ctx.fillRect(pixel.x, pixel.y, pixelSize, pixelSize);
+            }
+        }
+        
+        function animate() {
+            if (!isPaused && transitionProgress < 1) {
+                transitionProgress += 0.02;
+                if (transitionProgress > 1) transitionProgress = 1;
+            }
+            
+            drawPixels();
+            animationId = requestAnimationFrame(animate);
+        }
+        
+        function startColorChange(interval) {
+            if (intervalId) {
+                clearInterval(intervalId);
+            }
+            
+            if (!pixelData.length) {
+                initializePixelArrays();
+            }
+            
+            currentInterval = interval;
+            
+            generateNewTargetColors();
+            
+            if (!animationId) {
+                animate();
+            }
+            intervalId = setInterval(() => {
+                if (!isPaused) {
+                    generateNewTargetColors();
+                }
+            }, interval);
+            statusEl.textContent = `Pixels changing every ${interval}ms`;
+            statusEl.classList.add('visible');
+            
+            setTimeout(() => {
+                statusEl.classList.remove('visible');
+            }, 3000);
+        }
+        function togglePause() {
+            isPaused = !isPaused;
+            
+            if (isPaused) {
+                pauseBtn.classList.add('paused');
+                statusEl.textContent = "Animation paused";
+            } else {
+                pauseBtn.classList.remove('paused');
+                statusEl.textContent = "Animation resumed";
+            }
+            
+            statusEl.classList.add('visible');
+            setTimeout(() => {
+                statusEl.classList.remove('visible');
+            }, 2000);
+        }
+        function goToPreviousState() {
+            for (let i = 0; i < previousPixelData.length; i++) {
+                targetPixelData[i].color = {...previousPixelData[i].color};
+            }
+            transitionProgress = 0;
+            
+            statusEl.textContent = "Reverted to previous state";
+            statusEl.classList.add('visible');
+            setTimeout(() => {
+                statusEl.classList.remove('visible');
+            }, 2000);
+        }
+        function downloadImage() {
+            const link = document.createElement('a');
+            link.download = 'canvas-of-chaos.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            
+            statusEl.textContent = "Image downloaded";
+            statusEl.classList.add('visible');
+            setTimeout(() => {
+                statusEl.classList.remove('visible');
+            }, 2000);
+        }
+        document.querySelectorAll('button').forEach(button => {
+            button.addEventListener('mousedown', function(e) {
+                const ripple = document.createElement('span');
+                const rect = this.getBoundingClientRect();
+                const size = Math.max(rect.width, rect.height);
+                const x = e.clientX - rect.left - size / 2;
+                const y = e.clientY - rect.top - size / 2;
+                
+                ripple.style.cssText = `
+                    position: absolute;
+                    width: ${size}px;
+                    height: ${size}px;
+                    top: ${y}px;
+                    left: ${x}px;
+                    background: rgba(255, 255, 255, 0.2);
+                    border-radius: 50%;
+                    transform: scale(0);
+                    pointer-events: none;
+                    animation: ripple 0.6s linear;
+                `;
+                
+                this.appendChild(ripple);
+                
+                setTimeout(() => {
+                    ripple.remove();
+                }, 600);
+            });
+        });
+        intervalInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                updateBtn.click();
+            }
+        });
+        updateBtn.addEventListener('click', () => {
+            const newInterval = parseInt(intervalInput.value);
+            if (newInterval >= 100 && newInterval <= 10000) {
+                startColorChange(newInterval);
+                updateBtn.classList.add('clicked');
+                setTimeout(() => {
+                    updateBtn.classList.remove('clicked');
+                }, 200);
+            } else {
+                alert('Please enter a value between 100 and 10000');
+                intervalInput.value = currentInterval;
+            }
+        });
+        
+        pauseBtn.addEventListener('click', togglePause);
+        undoBtn.addEventListener('click', goToPreviousState);
+        downloadBtn.addEventListener('click', downloadImage);
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            startColorChange(currentInterval);
+        });
+        startColorChange(currentInterval);
+    </script>
+</body>
+</html>
