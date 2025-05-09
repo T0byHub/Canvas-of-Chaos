@@ -137,6 +137,21 @@
             100% { transform: translateY(0px); }
         }
 
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background-color: rgba(20, 30, 50, 0.7);
+            padding: 15px 25px;
+            border-radius: 50px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 0 20px rgba(0, 150, 255, 0.2);
+            transition: all 0.5s cubic-bezier(0.165, 0.84, 0.44, 1);
+            position: relative;
+            overflow: hidden;
+            animation: float 6s ease-in-out infinite;
+            flex-wrap: wrap;
+            justify-content: center;
         }
 
         .controls::before {
